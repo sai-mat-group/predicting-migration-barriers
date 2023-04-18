@@ -22,12 +22,6 @@ python setup.py develop
 pip install dgl-cu111
 ```
 
-We are almost installed. One issue is that `alignn` is pinned to `pytorch-1.12` - but this is not compatible with the A100 GPUs. We find that upgrading `pytorch` results in a few warnings and errors during install, but still seems to run as expected. You don't need to do this unless you are using nice GPUs :)
-
-```
-pip install --upgrade torch
-```
-
 If you want to use any `pymatgen` functionality
 
 ```

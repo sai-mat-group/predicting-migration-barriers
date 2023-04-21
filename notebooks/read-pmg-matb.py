@@ -5,28 +5,22 @@ from pymatgen.io.jarvis import JarvisAtomsAdaptor
 
 from tqdm import tqdm
 
-data = '../structures/Structures.json'
-MAX_ATOMS = 300 # Maximum number of atoms allowed in a structure
+data = '../../transfer-learning-gnn/data/matbench_phonons.json'
 with open(data, "rb") as f:
     loaded = json.loads(f.read())
 
+
 dataset = []
-for i in tqdm(range(len(loaded))):
-    if (i+3)%3 == 0: # Only take the first structure i.e. initial state, not transition or final
-        info = {}
-        info['jid'] = int(i)
-        info['target'] = loaded[i]['barrier']
-        structure = Structure.from_dict(loaded[i])
-        if len(structure) <= MAX_ATOMS: # Check if length is the problem for some graphs
-            structure = JarvisAtomsAdaptor.get_atoms(structure)
-            info['atoms'] = structure.to_dict()
-            dataset.append(info)
+for i in tqdm(range(len(loaded['index']))):
+    info = {}
+    info['jid'] = loaded['index'][i]
+    info['target'] = loaded['data'][i][1]
+    structure = Structure.from_dict(loaded['data'][i][0])
+    structure = JarvisAtomsAdaptor.get_atoms(structure)
+    info['atoms'] = structure.to_dict()
+    dataset.append(info)
 
-list_to_drop = [117/3, 108/3, 18/3]
-
-for i in list_to_drop:
-    dataset.pop(int(i))
-
+print(info['atoms'])
 # ### Now set up alignn model
 from alignn.data import get_train_val_loaders
 from jarvis.db.jsonutils import loadjson

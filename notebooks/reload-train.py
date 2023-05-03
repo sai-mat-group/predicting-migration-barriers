@@ -1,4 +1,5 @@
 import json
+import torch
 
 from pymatgen.core.structure import Structure 
 from pymatgen.io.jarvis import JarvisAtomsAdaptor
@@ -6,6 +7,7 @@ from pymatgen.io.jarvis import JarvisAtomsAdaptor
 from tqdm import tqdm
 
 data = '../structures/Structures.json'
+model_path = 'checkpoint_3.pt'
 MAX_ATOMS = 300 # Maximum number of atoms allowed in a structure
 with open(data, "rb") as f:
     loaded = json.loads(f.read())
@@ -26,6 +28,7 @@ for i in tqdm(range(len(loaded))):
 from alignn.data import get_train_val_loaders
 from jarvis.db.jsonutils import loadjson
 from alignn.config import TrainingConfig
+from alignn.models.alignn import ALIGNN
 
 config = loadjson('../bin/config_git.json')
 config = TrainingConfig(**config)
@@ -66,8 +69,19 @@ config = TrainingConfig(**config)
 
 
 from alignn.train import train_dgl
+
+## Check for GPU and CUDA
+device = "cpu"
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+
+model = ALIGNN()
+model.load_state_dict(torch.load(model_path)["model"])
+model.to(device)
+
 train_dgl(
     config,
+    model,
     train_val_test_loaders=[
         train_loader,
         val_loader,

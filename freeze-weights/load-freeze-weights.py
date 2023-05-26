@@ -5,6 +5,7 @@ from pymatgen.core.structure import Structure
 from pymatgen.io.jarvis import JarvisAtomsAdaptor
 
 from tqdm import tqdm
+
 data = 'mp_e_form.json'  # The data to re-train on
 model_path = 'checkpoint_2.pt' # The model checkpoint to load initially
 freeze_before = 7 # The layer at which to unfreeze the weights
@@ -78,7 +79,7 @@ model = ALIGNN()
 model.load_state_dict(torch.load(model_path)["model"])
 for child in model.children():
     layer_count += 1
-    if layer_count >= freeze_before:
+    if layer_count < freeze_before:
         for param in child.parameters():
             param.requires_grad = False
 

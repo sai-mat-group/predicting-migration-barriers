@@ -4,7 +4,7 @@ from pymatgen.core.structure import Structure
 from pymatgen.io.jarvis import JarvisAtomsAdaptor
 
 from tqdm import tqdm
-data = 'fe_pre_train_10000.json'
+data = 'fe_pre_train_100000.json'
 with open(data, "rb") as f:
     dataset = json.loads(f.read())
 

@@ -15,7 +15,7 @@
     "test_ratio": null,
     "target_multiplication_factor": null,
     "epochs": 500,
-    "batch_size": 16,
+    "batch_size": 32,
     "weight_decay": 1e-05,
     "learning_rate": 0.0001,
     "n_early_stopping": 50,

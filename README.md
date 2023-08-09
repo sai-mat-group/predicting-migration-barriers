@@ -28,7 +28,7 @@ python setup.py develop
 pip install dgl-cu111
 ```
 
-If you want to use any `pymatgen` functionality
+If you want to use any `pymatgen` functionality:
 
 ```
 pip install pymatgen

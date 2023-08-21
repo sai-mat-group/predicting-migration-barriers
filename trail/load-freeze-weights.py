@@ -6,8 +6,9 @@ from pymatgen.io.jarvis import JarvisAtomsAdaptor
 
 from tqdm import tqdm
 
-data = 'phonons_10_test.json'  # The data to re-train on (gvrh)
+data = 'PM_10_test.json'  # The data to re-train on (gvrh)
 model_path = 'checkpoint_500.pt' # The model checkpoint to load initially (std_phonons)
+#model_path = '../test_load/checkpoint_500.pt' # The model checkpoint to load initially (std_phonons)
 freeze_before = 8 # The layer at which to unfreeze the weights
 
 with open(data, "rb") as f:
@@ -64,21 +65,19 @@ if torch.cuda.is_available():
     device = torch.device("cuda")
 
 model = ALIGNN()
-model.load_state_dict(torch.load(model_path))
-
-#print(model.layer[0].weight)
-
-
+model.load_state_dict(torch.load(model_path,  map_location=torch.device('cpu'))["model"])
 
 
 #model.to(device)
 
-#train_dgl(
-#    config,
-#    train_val_test_loaders=[
-#        train_loader,
-#        val_loader,
-#        test_loader,
-#        prepare_batch,
-#    ],
-#)
+train_dgl(
+    config,
+    model,
+    train_val_test_loaders=[
+        train_loader,
+        val_loader,
+        test_loader,
+        prepare_batch,
+    ],
+)
+print(model.atom_embedding.layer[0].weight)

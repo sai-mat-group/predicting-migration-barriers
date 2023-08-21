@@ -9,7 +9,7 @@ from tqdm import tqdm
 data = 'PM_10_test.json'  # The data to re-train on (gvrh)
 model_path = 'checkpoint_500.pt' # The model checkpoint to load initially (std_phonons)
 #model_path = '../test_load/checkpoint_500.pt' # The model checkpoint to load initially (std_phonons)
-freeze_before = 8 # The layer at which to unfreeze the weights
+freeze_before = 7 # The layer at which to unfreeze the weights
 
 with open(data, "rb") as f:
     dataset = json.loads(f.read())
@@ -66,6 +66,13 @@ if torch.cuda.is_available():
 
 model = ALIGNN()
 model.load_state_dict(torch.load(model_path,  map_location=torch.device('cpu'))["model"])
+layer_count = 0
+
+for child in model.children():
+    layer_count += 1
+    if layer_count < freeze_before:
+        for param in child.parameters():
+            param.requires_grad = False
 
 
 #model.to(device)
@@ -80,4 +87,3 @@ train_dgl(
         prepare_batch,
     ],
 )
-print(model.atom_embedding.layer[0].weight)

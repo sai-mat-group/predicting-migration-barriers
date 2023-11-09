@@ -57,24 +57,30 @@ model.load_state_dict(torch.load(model_path, map_location=torch.device(device))[
 
 results = []
 ground_truth = []
+ignored = 0
 
 for info in dataset:
-    g, lg = atoms_to_graph(info['atoms'],
-        cutoff=config.cutoff,
-        max_neighbors=config.max_neighbors,
-        atom_features=config.atom_features,
-        use_canonize=config.use_canonize
-        )
+    try:
+        g, lg = atoms_to_graph(info['atoms'],
+            cutoff=config.cutoff,
+            max_neighbors=config.max_neighbors,
+            atom_features=config.atom_features,
+            use_canonize=config.use_canonize
+            )
 
-    results.append(model([g.to(device), lg.to(device)])
+        results.append(model([g.to(device), lg.to(device)])
             .detach().cpu().numpy()
             .flatten()[0])
-    ground_truth.append(info['target'])
+        ground_truth.append(info['target'])
+    except:
+        print('Case did not run: ', info['jid'])
+        ignored = ignored + 1
 
 list_zip = zip(ground_truth, results)
 
 print('r2: {0:4f}'.format(r2_score(ground_truth, results)))
 print('mae: {0:4f}'.format(mean_absolute_error(ground_truth, results)))
+print('Ignored {} cases'.format(ignored))
 
 with open('predictions.csv', 'w') as f:
     # Create a CSV writer object that will write to the file 'f'

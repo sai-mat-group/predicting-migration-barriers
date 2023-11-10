@@ -1,0 +1,4 @@
+
+ r2: 0.018833
+ mae: 0.207131
+ Ignored 5 cases

@@ -191,10 +191,13 @@ class ALIGNN(nn.Module):
     and atomistic line graph.
     """
 
-    def __init__(self, config: ALIGNNConfig = ALIGNNConfig(name="alignn"), n_outputs=6):
+    def __init__(self, config: ALIGNNConfig = ALIGNNConfig(name="alignn"), n_outputs=6, print_outputs=False, 
+            n_hidden=1):
         """Initialize class with number of input features, conv layers."""
         super().__init__()
         # print(config)
+        self.n_hidden = n_hidden
+        self.print_outputs = print_outputs
         self.classification = config.classification
 
         self.atom_embedding = MLPLayer(
@@ -231,7 +234,13 @@ class ALIGNN(nn.Module):
 
         self.readout = AvgPooling()
 
-        self.fc = nn.Linear(config.hidden_features, n_outputs)
+        if self.n_hidden > 0:
+            self.fc = nn.Linear(config.hidden_features, 128)
+        else:
+            self.fc = nn.Linear(config.hidden_features, n_outputs)
+
+        self.fc_h = nn.Linear(128, 128)
+        self.fc_o = nn.Linear(128, n_outputs)
         self.link = None
         self.link_name = config.link
         if config.link == "identity":
@@ -285,6 +294,18 @@ class ALIGNN(nn.Module):
         # norm-activation-pool-classify
         h = self.readout(g, x)
         h = self.fc(h)
+        if self.n_hidden > 0:
+            for ii in range(self.n_hidden - 1):
+                h = self.fc_h(h)
+            h = self.fc_o(h)
+            
         out = torch.mul(h, has_prop)
 
-        return torch.squeeze(out)
+        if self.print_outputs:
+            print('OUTPUTS  ##################')
+            print(out)
+            print('#############')
+            print(has_prop)
+            print('#############')
+
+        return(out)

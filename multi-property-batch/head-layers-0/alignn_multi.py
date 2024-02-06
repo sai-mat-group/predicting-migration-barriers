@@ -308,5 +308,4 @@ class ALIGNN(nn.Module):
             print(has_prop)
             print('#############')
 
-
-        return torch.squeeze(out)
+        return(out)

@@ -62,7 +62,7 @@ def collate_line_graph(samples):
             return batched_graph, batched_line_graph, torch.stack(has_prop), torch.tensor(labels)
 
 ### Parameters that we need to set
-data = '../../data/No-dup-complete_dataset_100.json'
+data = '../../data/dc-multi_800.json'
 epochs = 300
 load_prev_best_model = True
 train_split = 90
@@ -71,13 +71,13 @@ val_split = 10
 batch_size = 4
 lim = False      # Just used if you want a smaller subset for testing
 learning_rate = 1e-3 
-prop_indices = [2]  # This is the index of the property - taken from the OH column
+prop_indices = [3]  # This is the index of the property - taken from the OH column
 n_early_stopping = 30
 n_outputs=6 # Dimensions of the original MPR model, 6
 n_hidden=0 # Number of hidden layers in the head
 print_outputs=False
-checkpoint_dir = './fine-tune-piezo/' # Where all your checkpoints will be saved
-checkpoint_fp = 'best_model-piezo.pt' # The checkpoint of the general model to load up initially
+checkpoint_dir = './fine-tune-diel/' # Where all your checkpoints will be saved
+checkpoint_fp = 'best_model-diel.pt' # The checkpoint of the general model to load up initially
 ### No need to edit beyond here
 
 

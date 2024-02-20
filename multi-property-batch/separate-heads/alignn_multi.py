@@ -235,13 +235,20 @@ class ALIGNN(nn.Module):
 
         self.readout = AvgPooling()
 
-        if self.n_hidden > 0:
-            self.fc = nn.Linear(config.hidden_features, 128)
-        else:
-            self.fc = nn.Linear(config.hidden_features, n_outputs)
 
-        self.fc_h = MLPLayer(128, 128)
-        self.fc_o = nn.Linear(128, 1)
+        self.conv_to_fc = nn.ModuleList([nn.Linear(config.hidden_features, 128)\
+                          for _ in range(self.n_outputs)])
+        self.conv_to_fc_activation = nn.ModuleList([nn.SiLU() for _ in range(self.n_outputs)])
+        if n_hidden > 1:
+            self.fc_hp = nn.ModuleList([
+                         nn.ModuleList([nn.Linear(128, 128) for _ in range(n_hidden - 1)])
+                                      for _ in range(self.n_outputs)])
+            self.fc_activation = nn.ModuleList([
+                                 nn.ModuleList([nn.SiLU() for _ in range(n_hidden - 1)])
+                                 for _ in range(self.n_outputs)])
+
+        self.fc_out = nn.ModuleList([nn.Linear(128, 1) for _ in range(self.n_outputs)])
+
         self.link = None
         self.link_name = config.link
         if config.link == "identity":
@@ -294,17 +301,26 @@ class ALIGNN(nn.Module):
 
         # norm-activation-pool-classify
         h = self.readout(g, x)
-        h = self.fc(h)   # Straing  to output if hidden = 0, rehshapes the space if hidden > 0
-        if self.n_outputs > 0:
-            for ii in range(self.n_outputs):
-                h = self.fc_h(h)
-                if ii > 0:
-                    outs = torch.cat((outs, self.fc_o(h)), 1)
-                else:
-                    outs = self.fc_o(h)
-        print(outs)
-        print(has_prop)
-        out = torch.mul(outs, has_prop)
+
+        crys_features = [self.conv_to_fc[i](self.conv_to_fc_activation[i](h))\
+                        for i in range(self.n_outputs)]
+        crys_features = [self.conv_to_fc_activation[i](crys_features[i]) for i in range(self.n_outputs)]
+        
+        processed_features = []
+        for i in range(self.n_outputs):
+                out_val = crys_features[i]
+                if hasattr(self, 'fc_hp'):
+                    for fc, activation in zip(self.fc_hp[i], self.fc_activation[i]):
+                        out_val = activation(fc(out_val))
+
+                processed_features.append(out_val)
+		
+
+		# final output layer
+        out = [self.fc_out[i](processed_features[i]) for i in range(self.n_outputs)]
+        out = torch.cat(out, 1)
+        out = torch.mul(out, has_prop)
+
         if self.print_outputs:
             print('OUTPUTS  ##################')
             print(out)

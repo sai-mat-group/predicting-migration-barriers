@@ -165,7 +165,7 @@ evaluator = create_supervised_evaluator(
 train_evaluator = create_supervised_evaluator(
         model,
         metrics=metrics,
-        prepare_batch=val_loader.dataset.prepare_batch,
+        prepare_batch=train_loader.dataset.prepare_batch,
         device=device,
         #
        )

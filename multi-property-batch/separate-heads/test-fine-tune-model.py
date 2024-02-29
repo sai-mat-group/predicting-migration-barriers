@@ -73,12 +73,12 @@ lim = False      # Just used if you want a smaller subset for testing
 learning_rate = 1e-3 
 prop_indices = [3]  # This is the index of the property - taken from the OH column
 n_early_stopping = 10
-n_outputs=6 # Dimensions of the original MPR model, 6
-n_hidden=1 # Number of hidden layers in the head
-print_outputs=False
+n_outputs = 1 # Dimensions of the original MPR model, 6
+n_hidden = 2 # Number of hidden layers in the head
+print_outputs = False
 checkpoint_dir = './fine-tune-diel/' # Where all your checkpoints will be saved
-checkpoint_fp = 'best_model-diel.pt' # The checkpoint of the general model to load up initially
 checkpoint_fp = './fine-tune-diel/best_model.pt' # The checkpoint of the general model to load up initially
+preds_file = './preds-test-diel.csv'
 ### No need to edit beyond here
 
 
@@ -103,14 +103,6 @@ print('Taining data: ', train_lim, 'Validaion data:  ', val_lim)
 model = ALIGNN(n_outputs=n_outputs, 
         print_outputs=print_outputs, n_hidden=n_hidden)
 model.to(device)
-#model.load_state_dict(torch.load(checkpoint_fp, map_location=torch.device(device))['model'])
-
-# Change the prediction head
-
-model.fc_o = torch.nn.Sequential(
-    torch.nn.Linear(in_features=128, 
-                    out_features=1,
-                    bias=True)).to(device)
 model.load_state_dict(torch.load(checkpoint_fp, map_location=torch.device(device))['model'])
 
 # Set up the optimiser, loss and device
@@ -307,6 +299,5 @@ for i in tqdm(range(len(val_data))):
     val_results.append((model((val_data.graphs[i].to(device), val_data.line_graphs[i].to(device), val_data.has_prop[i].to(device))).item(), 
             val_data[i][-1].item()))
 
-headers = ['Index','Predicted', 'True']
-df = pd.DataFrame(data = val_results, columns=headers)
-df.to_csv('val_preds.csv')
+df = pd.DataFrame(data = val_results)
+df.to_csv(preds_file)

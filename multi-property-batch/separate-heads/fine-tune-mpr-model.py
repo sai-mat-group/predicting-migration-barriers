@@ -73,11 +73,13 @@ lim = False      # Just used if you want a smaller subset for testing
 learning_rate = 5e-4 
 prop_indices = [3]  # This is the index of the property - taken from the OH column
 n_early_stopping = 50
-n_outputs=6 # Dimensions of the original MPR model, 6
-n_hidden=1 # Number of hidden layers in the head
-print_outputs=False
+n_outputs = 6 # Dimensions of the original MPR model, 6
+n_outputs_new = 1 # Dimensions of the original MPR model, 6
+n_hidden = 2 # Number of hidden layers in the head
+print_outputs = False
 checkpoint_dir = './fine-tune-diel/' # Where all your checkpoints will be saved
 checkpoint_fp = 'best_model-diel.pt' # The checkpoint of the general model to load up initially
+layers_to_copy = ['atom_embedding', 'edge_embedding', 'angle_embedding', 'alignn_layers', 'gcn_layers', 'readout'] # The layers from which to load pre-trained parameters
 #checkpoint_fp = './fine-tune-diel/best_model.pt' # The checkpoint of the general model to load up initially
 ### No need to edit beyond here
 
@@ -105,12 +107,16 @@ model = ALIGNN(n_outputs=n_outputs,
 model.to(device)
 model.load_state_dict(torch.load(checkpoint_fp, map_location=torch.device(device))['model'])
 
-# Change the prediction head
+# Set up the new model
+model_new = ALIGNN(n_outputs=n_outputs_new, 
+        print_outputs=print_outputs, n_hidden=n_hidden)
+model_new.to(device)
 
-model.fc_o = torch.nn.Sequential(
-    torch.nn.Linear(in_features=128, 
-                    out_features=1,
-                    bias=True)).to(device)
+# Copy weights from selected layers to new model
+for l in layers_to_copy:
+    l_o = getattr(model, l)
+    l_n = getattr(model_new, l)
+    l_n.load_state_dict(l_o.state_dict())
 
 # Set up the optimiser, loss and device
 
@@ -143,7 +149,7 @@ val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False, collate_
 from ignite.metrics import Loss, MeanAbsoluteError
 
 criterion = torch.nn.L1Loss()
-params = group_decay(model)
+params = group_decay(model_new)
 optimizer = torch.optim.AdamW(params, lr=1e-4)
 
 metrics = {"loss": Loss(criterion), "mae": MeanAbsoluteError()}
@@ -151,7 +157,7 @@ metrics = {"loss": Loss(criterion), "mae": MeanAbsoluteError()}
 # ## Set up trainer and evaluator
 
 trainer = create_supervised_trainer(
-        model,
+        model_new,
         optimizer,
         criterion,
         prepare_batch=train_loader.dataset.prepare_batch,
@@ -161,7 +167,7 @@ trainer = create_supervised_trainer(
         )
 
 evaluator = create_supervised_evaluator(
-        model,
+        model_new,
         metrics=metrics,
         prepare_batch=val_loader.dataset.prepare_batch,
         device=device,
@@ -169,7 +175,7 @@ evaluator = create_supervised_evaluator(
        )
 
 train_evaluator = create_supervised_evaluator(
-        model,
+        model_new,
         metrics=metrics,
         prepare_batch=val_loader.dataset.prepare_batch,
         device=device,
@@ -217,7 +223,7 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
 
 # what to save
 to_save = {
-        "model": model,
+        "model": model_new,
         "optimizer": optimizer,
         "lr_scheduler": scheduler,
         "trainer": trainer,
@@ -301,7 +307,3 @@ trainer.add_event_handler(
     )
 
 trainer.run(train_loader, max_epochs=epochs)
-
-test_data = get_torch_dataset(dataset, target='target', neighbor_strategy="k-nearest", atom_features="cgcnn", line_graph=True)
-for i in range(len(test_data)):
-    print(model((test_data.graphs[i].to(device), test_data.line_graphs[i].to(device), test_data.has_prop[i].to(device))).item(), test_data[i][-1])

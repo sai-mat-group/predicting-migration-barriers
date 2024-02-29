@@ -79,6 +79,7 @@ print_outputs = False
 checkpoint_dir = './fine-tune-diel/' # Where all your checkpoints will be saved
 checkpoint_fp = 'best_model-diel.pt' # The checkpoint of the general model to load up initially
 checkpoint_fp = './fine-tune-diel/best_model.pt' # The checkpoint of the general model to load up initially
+preds_file = 'val_preds-diel.csv'
 ### No need to edit beyond here
 
 
@@ -309,4 +310,4 @@ for i in tqdm(range(len(val_data))):
 
 headers = ['Predicted', 'True']
 df = pd.DataFrame(data = val_results, columns=headers)
-df.to_csv('val_preds_multi.csv')
+df.to_csv(preds_file)

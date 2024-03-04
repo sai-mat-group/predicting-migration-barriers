@@ -120,6 +120,7 @@ for datum in tqdm(dataset):
 
 train_data = get_torch_dataset(dataset[:train_lim], target='target', neighbor_strategy="k-nearest", atom_features="cgcnn", line_graph=True)
 val_data = get_torch_dataset(dataset[train_lim:train_lim+val_lim], target='target', neighbor_strategy="k-nearest", atom_features="cgcnn", line_graph=True)
+all_data = get_torch_dataset(dataset[], target='target', neighbor_strategy="k-nearest", atom_features="cgcnn", line_graph=True)
 
 from ignite.engine import (
     Events,
@@ -132,6 +133,7 @@ from torch.utils.data import DataLoader
 collate_fn = collate_line_graph
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
+all_loader = DataLoader(all_data, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
 from ignite.metrics import Loss, MeanAbsoluteError
 
@@ -295,9 +297,9 @@ trainer.add_event_handler(
 
 model.eval()
 val_results = []
-for i in tqdm(range(len(val_data))):
-    val_results.append((model((val_data.graphs[i].to(device), val_data.line_graphs[i].to(device), val_data.has_prop[i].to(device))).item(), 
-            val_data[i][-1].item()))
+for i in tqdm(range(len(all_data))):
+    val_results.append((model((all_data.graphs[i].to(device), all_data.line_graphs[i].to(device), all_data.has_prop[i].to(device))).item(), 
+            all_data[i][-1].item()))
 
 df = pd.DataFrame(data = val_results)
 df.to_csv(preds_file)

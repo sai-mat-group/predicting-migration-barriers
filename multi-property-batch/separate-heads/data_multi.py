@@ -215,7 +215,7 @@ def get_torch_dataset(
     if 'has_prop' in df.columns:
         has_prop = df['has_prop']
     else:
-        has_prop = False
+        has_prop = []
 
     graphs = load_graphs(
         df,

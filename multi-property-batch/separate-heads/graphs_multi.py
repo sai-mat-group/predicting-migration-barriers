@@ -560,12 +560,12 @@ def prepare_dgl_batch(
     return batch
 
 
-def prepare_line_graph_batch(
+def prepare_line_graph_batch_hp(
     batch: Tuple[Tuple[dgl.DGLGraph, dgl.DGLGraph], torch.Tensor],
     device=None,
     non_blocking=False,
 ):
-    """Send line graph batch to device.
+    """Send line graph batch to device. If using has_prop property
 
     Note: the batch is a nested tuple, with the graph and line graph together
     """
@@ -575,6 +575,25 @@ def prepare_line_graph_batch(
             g.to(device, non_blocking=non_blocking),
             lg.to(device, non_blocking=non_blocking),
             hp.to(device, non_blocking=non_blocking),
+        ),
+        t.to(device, non_blocking=non_blocking),
+    )
+    return batch
+
+def prepare_line_graph_batch(
+    batch: Tuple[Tuple[dgl.DGLGraph, dgl.DGLGraph], torch.Tensor],
+    device=None,
+    non_blocking=False,
+):
+    """Send line graph batch to device.
+
+    Note: the batch is a nested tuple, with the graph and line graph together
+    """
+    g, lg, t = batch
+    batch = (
+        (
+            g.to(device, non_blocking=non_blocking),
+            lg.to(device, non_blocking=non_blocking),
         ),
         t.to(device, non_blocking=non_blocking),
     )
@@ -684,7 +703,7 @@ class StructureDataset(torch.utils.data.Dataset):
 
         self.ids = self.df[id_tag]
         self.labels = [(self.df[target][ii]).type(torch.get_default_dtype()) for ii in range(len(df[target]))]
-        if self.has_prop:
+        if len(self.has_prop) > 0:
             self.has_prop = [(self.df['has_prop'][ii]).type(torch.get_default_dtype()) for ii in range(len(df[target]))]
         
         self.transform = transform
@@ -722,7 +741,11 @@ class StructureDataset(torch.utils.data.Dataset):
 
         self.prepare_batch = prepare_dgl_batch
         if line_graph:
-            self.prepare_batch = prepare_line_graph_batch
+            if len(self.has_prop) > 0:
+                self.prepare_batch = prepare_line_graph_batch_hp
+            else:
+                self.prepare_batch = prepare_line_graph_batch
+
 
             print("building line graphs")
             self.line_graphs = []

@@ -11,7 +11,10 @@ import torch
 from dgl.nn import AvgPooling
 
 # from dgl.nn.functional import edge_softmax
-from pydantic.typing import Literal
+try:
+    from pydantic.typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 from torch import nn
 from torch.nn import functional as F
 
@@ -320,6 +323,151 @@ class ALIGNN(nn.Module):
         out = [self.fc_out[i](processed_features[i]) for i in range(self.n_outputs)]
         out = torch.cat(out, 1)
         out = torch.mul(out, has_prop)
+
+        if self.print_outputs:
+            print('OUTPUTS  ##################')
+            print(out)
+            print('#############')
+            print(has_prop)
+            print('#############')
+
+        return out
+
+class ALIGNN_ft(nn.Module):
+    """Atomistic Line graph network. Modified for fine tuning after MPR training.
+
+    Chain alternating gated graph convolution updates on crystal graph
+    and atomistic line graph.
+    """
+
+    def __init__(self, config: ALIGNNConfig = ALIGNNConfig(name="alignn"), n_outputs=6, print_outputs=False, 
+            n_hidden=1):
+        """Initialize class with number of input features, conv layers."""
+        super().__init__()
+        # print(config)
+        self.n_hidden = n_hidden
+        self.print_outputs = print_outputs
+        self.classification = config.classification
+        self.n_outputs = n_outputs
+
+        self.atom_embedding = MLPLayer(
+            config.atom_input_features, config.hidden_features
+        )
+
+        self.edge_embedding = nn.Sequential(
+            RBFExpansion(vmin=0, vmax=8.0, bins=config.edge_input_features,),
+            MLPLayer(config.edge_input_features, config.embedding_features),
+            MLPLayer(config.embedding_features, config.hidden_features),
+        )
+        self.angle_embedding = nn.Sequential(
+            RBFExpansion(
+                vmin=-1, vmax=1.0, bins=config.triplet_input_features,
+            ),
+            MLPLayer(config.triplet_input_features, config.embedding_features),
+            MLPLayer(config.embedding_features, config.hidden_features),
+        )
+
+        self.alignn_layers = nn.ModuleList(
+            [
+                ALIGNNConv(config.hidden_features, config.hidden_features,)
+                for idx in range(config.alignn_layers)
+            ]
+        )
+        self.gcn_layers = nn.ModuleList(
+            [
+                EdgeGatedGraphConv(
+                    config.hidden_features, config.hidden_features
+                )
+                for idx in range(config.gcn_layers)
+            ]
+        )
+
+        self.readout = AvgPooling()
+
+
+        self.conv_to_fc = nn.ModuleList([nn.Linear(config.hidden_features, 128)\
+                          for _ in range(self.n_outputs)])
+        self.conv_to_fc_activation = nn.ModuleList([nn.SiLU() for _ in range(self.n_outputs)])
+        if n_hidden > 1:
+            self.fc_hp = nn.ModuleList([
+                         nn.ModuleList([nn.Linear(128, 128) for _ in range(n_hidden - 1)])
+                                      for _ in range(self.n_outputs)])
+            self.fc_activation = nn.ModuleList([
+                                 nn.ModuleList([nn.SiLU() for _ in range(n_hidden - 1)])
+                                 for _ in range(self.n_outputs)])
+
+        self.fc_out = nn.ModuleList([nn.Linear(128, 1) for _ in range(self.n_outputs)])
+
+        self.link = None
+        self.link_name = config.link
+        if config.link == "identity":
+            self.link = lambda x: x
+        elif config.link == "log":
+            self.link = torch.exp
+            avg_gap = 0.7  # magic number -- average bandgap in dft_3d
+            self.fc.bias.data = torch.tensor(
+                np.log(avg_gap), dtype=torch.float
+            )
+        elif config.link == "logit":
+            self.link = torch.sigmoid
+
+    def forward(
+        self, g: Union[Tuple[dgl.DGLGraph, dgl.DGLGraph], dgl.DGLGraph]
+    ):
+        """ALIGNN : start with `atom_features`.
+
+        x: atom features (g.ndata)
+        y: bond features (g.edata and lg.ndata)
+        z: angle features (lg.edata)
+
+        has_prop is a one-hot vector indicating if the datapoint has that property
+        """
+        if len(self.alignn_layers) > 0:
+            g, lg = g
+
+            lg = lg.local_var() 
+
+            # angle features (fixed)
+            z = self.angle_embedding(lg.edata.pop("h"))
+
+        g = g.local_var()
+
+        # initial node features: atom feature network...
+        x = g.ndata.pop("atom_features")
+        x = self.atom_embedding(x)
+
+        # initial bond features
+        bondlength = torch.norm(g.edata.pop("r"), dim=1)
+        y = self.edge_embedding(bondlength)
+
+        # ALIGNN updates: update node, edge, triplet features
+        for alignn_layer in self.alignn_layers:
+            x, y, z = alignn_layer(g, lg, x, y, z)
+
+        # gated GCN updates: update node, edge features
+        for gcn_layer in self.gcn_layers:
+            x, y = gcn_layer(g, x, y)
+
+        # norm-activation-pool-classify
+        h = self.readout(g, x)
+
+        crys_features = [self.conv_to_fc[i](self.conv_to_fc_activation[i](h))\
+                        for i in range(self.n_outputs)]
+        crys_features = [self.conv_to_fc_activation[i](crys_features[i]) for i in range(self.n_outputs)]
+        
+        processed_features = []
+        for i in range(self.n_outputs):
+                out_val = crys_features[i]
+                if hasattr(self, 'fc_hp'):
+                    for fc, activation in zip(self.fc_hp[i], self.fc_activation[i]):
+                        out_val = activation(fc(out_val))
+
+                processed_features.append(out_val)
+		
+
+		# final output layer
+        out = [self.fc_out[i](processed_features[i]) for i in range(self.n_outputs)]
+        out = torch.cat(out, 1)
 
         if self.print_outputs:
             print('OUTPUTS  ##################')

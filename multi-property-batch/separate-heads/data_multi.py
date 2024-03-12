@@ -212,7 +212,10 @@ def get_torch_dataset(
     line = "Min=" + str(np.min(vals)) + "\n"
     f.write(line)
     f.close()
-    has_prop = df['has_prop']
+    if 'has_prop' in df.columns:
+        has_prop = df['has_prop']
+    else:
+        has_prop = False
 
     graphs = load_graphs(
         df,

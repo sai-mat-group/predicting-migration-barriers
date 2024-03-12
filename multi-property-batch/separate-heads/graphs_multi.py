@@ -681,17 +681,12 @@ class StructureDataset(torch.utils.data.Dataset):
                 # )
             # self.labels_stress = self.df[self.target_stress]
 
-        #print('PROP', self.df['has_prop'])
 
         self.ids = self.df[id_tag]
         self.labels = [(self.df[target][ii]).type(torch.get_default_dtype()) for ii in range(len(df[target]))]
-        #self.labels = torch.FloatTensor(self.labels)
-        self.has_prop = [(self.df['has_prop'][ii]).type(torch.get_default_dtype()) for ii in range(len(df[target]))]
-        #self.has_prop = torch.FloatTensor(self.has_prop)
+        if self.has_prop:
+            self.has_prop = [(self.df['has_prop'][ii]).type(torch.get_default_dtype()) for ii in range(len(df[target]))]
         
-        #self.labels = torch.FloatTensor(self.df[target]).type(   KTB
-            #torch.get_default_dtype()
-        #)
         self.transform = transform
 
         features = self._get_attribute_lookup(atom_features)
@@ -767,15 +762,23 @@ class StructureDataset(torch.utils.data.Dataset):
         """Get StructureDataset sample."""
         g = self.graphs[idx]
         label = self.labels[idx]
-        hp = self.has_prop[idx]
 
         if self.transform:
             g = self.transform(g)
 
         if self.line_graph:
-            return g, self.line_graphs[idx], hp, label
+            if self.has_prop:
+                hp = self.has_prop[idx]
+                return g, self.line_graphs[idx], hp, label
+            else:
+                return g, self.line_graphs[idx], label
 
-        return g, hp, label
+        if self.has_prop:
+            hp = self.has_prop[idx]
+            return g, hp, label
+        else:
+            return g, label
+
 
     def setup_standardizer(self, ids):
         """Atom-wise feature standardization transform."""

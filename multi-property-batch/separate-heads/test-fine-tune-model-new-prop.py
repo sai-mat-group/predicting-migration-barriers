@@ -296,7 +296,7 @@ trainer.add_event_handler(
 model.eval()
 val_results = []
 for i in tqdm(range(len(all_data))):
-    val_results.append((model((all_data.graphs[i].to(device), all_data.line_graphs[i].to(device), all_data.has_prop[i].to(device))).item(), 
+    val_results.append((model((all_data.graphs[i].to(device), all_data.line_graphs[i].to(device))).item(), 
             all_data[i][-1].item()))
 
 df = pd.DataFrame(data = val_results)

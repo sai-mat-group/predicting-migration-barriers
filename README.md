@@ -1,35 +1,16 @@
-# predicting-migration-barriers
+# Predicting Migration Barriers
 
-Repository for migration barrier dataset which will be used for model constructions.
+This repository contains the trained models built on the [Migration Barrier Dataset](https://github.com/sai-mat-group/migration-barrier-dataset/tree/main).
 
-## Instructions to set up ALIGNN
+## Repository Structure
 
+- Each directory contains the train and test files corresponding to a modified multi-property trained (MPT) model architecture explored in the work (**[reference to be added]**). The naming convention of these directories follows the nomenclature used in the paper.
+- Training files for the **SCRATCH** model are located in:  
+  `train_files/SCRATCH/`
+- Raw training and test data files are stored in:  
+  `DATA-FILES/`
 
-We build a conda environment (here I use mamba, as it is much more efficient, but if you have conda you can just substitute `conda` for `mamba` below) 
-```
-mamba create --name alignn python=3.8
-mamba activate alignn
-```
+## Installation & Usage
 
-Now we want to install `alignn`, I usually have an `src` directory in my home for any install from source packages
-If you already cloned `alignn`, skip this block
-
-```
-cd 
-cd src
-git clone https://github.com/usnistgov/alignn.git
-```
-
-Go to the `alignn` directory and make sure all is up to date
-```
-cd alignn
-git pull
-python setup.py develop
-pip install dgl-cu111
-```
-
-If you want to use any `pymatgen` functionality:
-
-```
-pip install pymatgen
-```
+Instructions for installing the **ALIGNN** package and loading a pre-trained model can be found here:  
+👉 [transfer-learning-material-properties](https://github.com/sai-mat-group/transfer-learning-material-properties)

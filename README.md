@@ -4,7 +4,7 @@ This repository contains the trained models that are part of the manuscript, "Le
 
 ## Repository Structure
 
-- Each directory contains the train and test files corresponding to a modified multi-property trained (MPT) model architecture explored in the work (**[reference to be added]**). The naming convention of these directories follows the nomenclature used in the paper.
+- Each directory contains the train and test files corresponding to a modified multi-property trained (MPT) model architecture explored in the work (**[DoI](https://doi.org/10.1038/s41524-024-01486-1)**). The original MPT model is available at a different [repository](https://github.com/sai-mat-group/transfer-learning-material-properties). The naming convention of these directories follows the nomenclature used in the [paper](https://arxiv.org).
 - Training files for the **SCRATCH** model are located in:  
   `train_files/SCRATCH/`
 - Raw training and test data files are stored in:  

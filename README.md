@@ -15,4 +15,4 @@ This repository contains the trained models that are part of the manuscript, "Le
 Instructions for installing the **ALIGNN** package and loading a pre-trained model can be found here:  
 👉 [transfer-learning-material-properties](https://github.com/sai-mat-group/transfer-learning-material-properties)
 
-In case you use our models in your work, we will appreciate a citation to our work at [arXiv](https://arxiv.org). If you utilise the migration barrier dataset also in your work, we will appreciate a citation to the manuscript describing the dataset compilation process at [arXiv](https://arxiv.org/abs/2508.06436).
+In case you use our models in your work, we will appreciate a citation to our work at [arXiv](https://arxiv.org/abs/2508.06436). If you utilise the migration barrier dataset also in your work, we will appreciate a citation to the manuscript describing the dataset compilation process at [arXiv](https://arxiv.org/abs/2508.06459).
